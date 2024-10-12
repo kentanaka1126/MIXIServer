@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
 const passport = require("passport");
+const path = require('path');
 const PORT = process.env.PORT || 5000;
 dotenv.config();
 // Import passport configuration
@@ -12,6 +13,11 @@ dotenv.config();
 require("./config/passport"); // Import passport configuration
 const app = express();
 
+app.use(express.static(path.join(__dirname, 'build')));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'build', 'index.html'));
+});
 app.use(
   session({
     secret: "yourSecretKey",
@@ -25,7 +31,7 @@ app.use(passport.session());
 
 app.use(
   cors({
-    origin: [`http://localhost:3000`],
+    origin: [`https://mixiserver-6.onrender.com`],
     methods: ["GET", "POST"],
     credentials: true,
   })
@@ -48,9 +54,9 @@ const authRoutes = require("./Routes/Auth.js");
 const userRoutes = require("./Routes/User.js");
 const stripeRoutes = require("./Routes/Payment.js");
 
-app.get("/", (req, res) => {
-  res.send("Troubleshooting...");
-});
+// app.get("/", (req, res) => {
+//   res.send("Troubleshooting...");
+// });
 
 app.listen(PORT, () =>
   console.log(`Server running at port http://localhost:${PORT}/`)
