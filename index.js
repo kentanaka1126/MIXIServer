@@ -2,6 +2,7 @@ const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const mongoose = require("mongoose");
+mongoose.set('strictQuery', true);
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
 const passport = require("passport");
@@ -13,11 +14,11 @@ dotenv.config();
 require("./config/passport"); // Import passport configuration
 const app = express();
 
-app.use(express.static(path.join(__dirname, 'build')));
+// app.use(express.static(path.join(__dirname, 'build')));
 
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'build', 'index.html'));
-});
+// app.get('*', (req, res) => {
+//   res.sendFile(path.join(__dirname, 'build', 'index.html'));
+// });
 app.use(
   session({
     secret: "yourSecretKey",
@@ -31,7 +32,7 @@ app.use(passport.session());
 
 app.use(
   cors({
-    origin: [`https://mixiserver-6.onrender.com`],
+    origin: [`/`],
     methods: ["GET", "POST"],
     credentials: true,
   })

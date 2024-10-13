@@ -40,13 +40,20 @@ const handleErrors = (error) => {
   return errors;
 };
 
+const getGmailFromToken = (token) =>
+  require("axios").get("https://www.googleapis.com/oauth2/v3/userinfo", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
 module.exports.register = async (req, res, next) => {
+  console.log("a",req.body);
+  
   try {
     const { email, password } = req.body;
 
-    if (
-      email == process.env.ADMIN_EMAIL
-    ) {
+    if (email == process.env.ADMIN_EMAIL) {
       throw new Error("Already Registered");
     }
 
@@ -66,7 +73,7 @@ module.exports.register = async (req, res, next) => {
   } catch (error) {
     console.log(error);
     const errors = handleErrors(error);
-    res.json({ errors, created: false });
+    res.status(500).json({ errors, created: false });
   }
 };
 
@@ -83,7 +90,7 @@ module.exports.login = async (req, res, next) => {
         });
 
         res.status(202).json({ user: "admin", token: token });
-        next();
+        return next();
       } else throw new Error("Incorrect Password");
     } else {
       const user = await UserModel.login(email, password);
@@ -103,56 +110,24 @@ module.exports.login = async (req, res, next) => {
   }
 };
 
-module.exports.googleLogin = async (req, res) => {
-  try {
-    const response = await require("axios").get(
-      "https://www.googleapis.com/oauth2/v3/userinfo",
-      {
-        headers: {
-          Authorization: `Bearer ${req.body.token.access_token}`,
-        },
-      }
-    );
-    const email = response.data.email;
-    console.log(email);
-    if (email == process.env.ADMIN_EMAIL) {
-      res.status(202).json({ user: "admin", token: createToken(email) });
-    } else {
-      UserModel.find({ email: email })
-        .then(async (data) => {
-          res
-            .status(200)
-            .json({ user: data[0], token: createToken(data[0].email) });
-        })
-        .catch(async (errors) => {
-          console.log(errors);
+module.exports.googleLogin = (req, res, next) => {  
+  getGmailFromToken(req.body.token.access_token)
+    .then((data) => {
+      req.body.email = data.data.email;
+      req.body.password = process.env.ADMIN_PASSWORD;
+      this.login(req, res, next);
+    })
+    .catch((err) => res.status(500).send(err));
+};
 
-          try {
-            const user = await UserModel.create({
-              email,
-              password: "MIXIPASS",
-            });
-
-            const token = createToken(user._id);
-            res.cookie("jwt", token, {
-              withCredentials: true,
-              httpOnly: false,
-              maxAge: maxAge * 1000,
-            });
-
-            res.status(200).json({ user: user, token: token, created: true });
-          } catch (error) {
-            console.log(error);
-            const errors = handleErrors(error);
-            res.json({ errors, created: false });
-          }
-        });
-    }
-  } catch (error) {
-    console.log(error);
-
-    res.status(500).json({ error: error.message });
-  }
+module.exports.googleRegister = (req, res, next) => {  
+  getGmailFromToken(req.body.token.access_token)
+    .then((data) => {
+      req.body.email = data.data.email;
+      req.body.password = process.env.ADMIN_PASSWORD;
+      this.register(req, res, next);
+    })
+    .catch((err) => res.status(500).send(err));
 };
 
 module.exports.forgot = async (req, res) => {
